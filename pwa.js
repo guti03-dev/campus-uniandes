@@ -14,3 +14,11 @@ function waiting(){if(registration?.waiting){update.hidden=false;update.textCont
 let requestedUpdate=false;update.onclick=()=>{if(registration?.waiting){requestedUpdate=true;update.disabled=true;registration.waiting.postMessage({type:'ACTIVATE_UPDATE'});}};
 if('serviceWorker' in navigator&&location.protocol!=='file:'&&window.isSecureContext){navigator.serviceWorker.addEventListener('controllerchange',()=>{if(requestedUpdate)location.reload();});navigator.serviceWorker.register('./sw.js',{scope:'./',updateViaCache:'none'}).then(reg=>{registration=reg;waiting();reg.addEventListener('updatefound',()=>{const worker=reg.installing;worker?.addEventListener('statechange',()=>{if(worker.state==='installed')waiting();});});return navigator.serviceWorker.ready;}).then(()=>{ready.textContent='Copia guardada: rutas, salones y directorio disponibles sin conexión.';}).catch(()=>{ready.textContent='No se pudo guardar la copia sin conexión. Vuelve a abrir la página con internet.';});}else{ready.textContent='El modo instalable y sin conexión requiere HTTPS y un navegador compatible.';}
 })();
+
+
+// Independent community module; keep routing and the offline shell available.
+(function(){
+ const base=new URL('./',location.href);
+ const style=document.createElement('link');style.rel='stylesheet';style.href=new URL('community.css',base);document.head.append(style);
+ const script=document.createElement('script');script.src=new URL('community.js',base);script.defer=true;document.body.append(script);
+})();

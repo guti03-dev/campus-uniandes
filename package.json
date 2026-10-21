@@ -1,0 +1,1 @@
+{"name":"campus-uniandes","private":true,"scripts":{"test":"node tests/interface.cjs"},"devDependencies":{"jsdom":"26.1.0"}}
