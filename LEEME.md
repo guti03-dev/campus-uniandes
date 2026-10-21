@@ -1,17 +1,5 @@
 # Campus Uniandes · PWA
 
-Versión basada en Campus_Uniandes_Menus.html: conserva las rutas, 355 salones, 25 restaurantes y ajustes.
-
-## Publicar en GitHub Pages
-
-1. Descomprime el ZIP.
-2. Sube TODO el contenido de esta carpeta a la raíz de `guti03-dev/campus-uniandes`, reemplazando `index.html`. Mantén la carpeta `icons` y los nombres de los archivos.
-3. En GitHub, Settings → Pages: publica desde la rama `main`, carpeta `/ (root)`, si aún no está configurado.
-4. Espera a que termine la publicación. Abre `https://guti03-dev.github.io/campus-uniandes/` con internet.
-5. Abre Ajustes. Espera el mensaje «Copia guardada» antes de probar sin conexión.
-
-No funciona como PWA abriendo index.html mediante file://. Requiere HTTPS o localhost.
-
 ## Instalar
 
 - Android: abre la página en Chrome, entra en Ajustes → Instalar Campus. Si el navegador no ofrece el aviso, usa su menú → Instalar aplicación / Añadir a pantalla de inicio.
