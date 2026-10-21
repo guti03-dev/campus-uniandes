@@ -20,5 +20,8 @@ if('serviceWorker' in navigator&&location.protocol!=='file:'&&window.isSecureCon
 (function(){
  const base=new URL('./',location.href);
  const style=document.createElement('link');style.rel='stylesheet';style.href=new URL('community.css',base);document.head.append(style);
- const script=document.createElement('script');script.src=new URL('community.js',base);script.defer=true;document.body.append(script);
+ const script=document.createElement('script');script.src=new URL('community.js',base);script.defer=true;
+ const uiStyle=document.createElement('link');uiStyle.rel='stylesheet';uiStyle.href=new URL('mobile-ui.css',base);document.head.append(uiStyle);
+ const loadUI=()=>{const ui=document.createElement('script');ui.src=new URL('mobile-ui.js',base);document.body.append(ui);};
+ script.onload=loadUI;script.onerror=loadUI;document.body.append(script);
 })();
