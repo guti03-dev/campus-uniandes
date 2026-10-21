@@ -1,5 +1,5 @@
 'use strict';
-const BUILD='mobile-ui-v2-20261021';
+const BUILD='community-markers-v3-20261021';
 const ROOT=new URL('./',self.location.href);
 const PREFIX='campus-pwa-'+encodeURIComponent(ROOT.pathname)+'-';
 const CACHE=PREFIX+BUILD;
