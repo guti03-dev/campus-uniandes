@@ -1,5 +1,5 @@
 'use strict';
-const BUILD='location-v4-20261021';
+const BUILD='building-names-v5-20261110';
 const ROOT=new URL('./',self.location.href);
 const PREFIX='campus-pwa-'+encodeURIComponent(ROOT.pathname)+'-';
 const CACHE=PREFIX+BUILD;
