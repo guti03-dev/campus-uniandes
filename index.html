@@ -25,7 +25,7 @@ body.path-editing .panel,body.path-editing .coordinate-panel{display:none!import
 .app-menu-buttons #emergencyPrototype{background:#fff0ee;color:#922c26;border:1px solid #d7a29d;opacity:1;cursor:pointer;line-height:1.2}
 #emergencyPrototype small{display:block;font-size:9px;font-weight:500;margin-top:3px}
 @media(max-width:700px){.app-menu-buttons{grid-template-columns:minmax(0,1.5fr) repeat(4,minmax(0,1fr))!important}.app-menu-buttons #emergencyPrototype{font-size:10px;white-space:normal;overflow-wrap:anywhere;min-width:0;max-width:100%;padding:5px 3px;box-sizing:border-box;line-height:1.15}.app-menu-buttons #emergencyPrototype .emergency-icon{display:block;font-size:14px;margin-bottom:2px}}
-</style></head><body>
+</style><link rel="stylesheet" href="./navigation.css"><script defer src="./navigation.js"></script></head><body>
 <div id="map" aria-label="Campus universitario en 3D"></div>
 <header><div class="logo" aria-hidden="true">↗</div><div class="brand">campus<small>UNIVERSIDAD DE LOS ANDES</small></div></header>
 <main class="panel"><div class="eyebrow">De aquí a tu próxima clase</div><h1>Encuentra tu camino.</h1><p>Elige tu destino y compara cómo llegar.</p>
@@ -354,7 +354,7 @@ function toast(message){$('toast').textContent=message;$('toast').classList.remo
 const routeBuildings=[...CATALOG.buildings].sort((a,b)=>a.code.localeCompare(b.code,'es',{numeric:true,sensitivity:'base'}));
 for(const b of routeBuildings){for(const id of ['origin','destination']){const option=el('option',`${b.code} · ${b.name}`);option.value=b.code;$(id).append(option);}}
 $('origin').value='ML';$('destination').value='W';
-function clearRoutes(){options=[];active=null;$('directions').classList.add('hidden');$('alternatives').replaceChildren(el('h2','Tus opciones'),el('div','Pulsa Comparar rutas para buscar alternativas.','hint'));updateRoutes();}
+function clearRoutes(){window.CampusGuidance?.stop();options=[];active=null;$('directions').classList.add('hidden');$('alternatives').replaceChildren(el('h2','Tus opciones'),el('div','Pulsa Comparar rutas para buscar alternativas.','hint'));updateRoutes();}
 $('origin').onchange=clearRoutes;$('destination').onchange=()=>{chosenRoom=null;clearRoutes();};
 $('swap').onclick=()=>{const origin=$('origin').value;$('origin').value=$('destination').value;$('destination').value=origin;chosenRoom=null;clearRoutes();};
 $('roomSearch').oninput=()=>{const q=$('roomSearch').value.trim().toLowerCase();$('searchResults').replaceChildren();if(!q)return;const found=[...CATALOG.buildings.filter(b=>(b.code+' '+b.name).toLowerCase().includes(q)).map(b=>({code:b.code,name:b.name,building:b.code})),...rooms.filter(r=>(r.code+' '+r.building).toLowerCase().includes(q)).map(r=>({...r,name:'Salón · Piso '+r.floor,room:true}))].slice(0,10);if(!found.length)$('searchResults').append(el('p','No hay coincidencias en los destinos registrados.'));for(const result of found){const b=el('button',result.code);b.append(el('small',result.name));b.onclick=()=>{$('destination').value=result.building;chosenRoom=result.room?result:null;$('roomSearch').value=result.code;$('searchResults').replaceChildren();clearRoutes();const c=buildingCoords[result.building];if(map&&c)map.flyTo({center:c,zoom:18.4,pitch:55});};$('searchResults').append(b);}};
@@ -369,36 +369,14 @@ function compare(){
  const first=options.find(x=>x.route);if(first)selectRoute(first.mode);else target.append(el('p','Revisa las conexiones de las entradas, los tramos cerrados y los sentidos únicos en Trazar caminos.'));
 }
 $('findRoutes').onclick=compare;
-function routeInstructions(route){
- const output=[];let current=null,previousBearing=null;
- const meters=(a,b)=>{const r=Math.PI/180;return 12742000*Math.asin(Math.min(1,Math.sqrt(Math.sin((b[1]-a[1])*r/2)**2+Math.cos(a[1]*r)*Math.cos(b[1]*r)*Math.sin((b[0]-a[0])*r/2)**2)));};
- const bearing=(a,b)=>Math.atan2((b[0]-a[0])*Math.cos((a[1]+b[1])*Math.PI/360),b[1]-a[1])*180/Math.PI;
- const flush=()=>{if(current){output.push(current.action+(current.distance>=1?' durante '+Math.max(1,Math.round(current.distance))+' m':'')+'.');current=null;}};
- for(let i=0;i<route.edges.length;i++){
-  const e=route.edges[i],c=e.geometry?.coordinates||[];
-  if(['stairs','ramp','elevator','bridge'].includes(e.kind)){
-   flush();const n=Math.max(1,Math.round(e.meters));
-   if(e.kind==='elevator')output.push((e.from===route.nodes[i]?'Sube ':'Baja ')+e.floors+' pisos en ascensor.');
-   else output.push((e.kind==='stairs'?'Toma las escaleras':e.kind==='ramp'?'Continúa por la rampa':'Cruza el puente')+' durante '+n+' m.');
-   previousBearing=null;continue;
-  }
-  for(let j=1;j<c.length;j++){
-   const distance=meters(c[j-1],c[j]);if(distance<.05)continue;
-   const direction=bearing(c[j-1],c[j]);const angle=previousBearing===null?0:((direction-previousBearing+540)%360)-180;
-   if(!current)current={action:output.length?'Continúa recto':'Avanza',distance:0};
-   if(distance>=2&&previousBearing!==null&&Math.abs(angle)>=35){flush();current={action:Math.abs(angle)>=150?'Da la vuelta':angle>0?'Gira a la derecha':'Gira a la izquierda',distance:0};}
-   current.distance+=distance;if(distance>=2)previousBearing=direction;
-  }
- }
- flush();return output;
-}
+function routeInstructions(route){return window.CampusGuidance?CampusGuidance.build(route,graph).map(step=>step.text):['Continúa por el recorrido marcado hasta la entrada del edificio.'];}
 function selectRoute(mode){active=options.find(x=>x.mode===mode);if(!active?.route)return;document.querySelectorAll('.route[data-mode]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.mode===mode));const section=$('directions'),r=active.route;section.replaceChildren(el('h2','Tu recorrido'));const stats=el('div',undefined,'stats');stats.append(el('span',Math.ceil(r.seconds/60)+' min estimados'),el('span',Math.round(r.meters)+' m'));section.append(stats);if(mode==='accessible'&&r.accessUncertain)section.append(el('p','Ruta por confirmar: faltan datos de escalones, pendiente, ancho o superficie en algunos tramos. No se garantiza el acceso en silla de ruedas.'));const steps=el('ol',undefined,'steps');routeInstructions(r).forEach(text=>steps.append(el('li',text)));section.append(steps,el('div','Llegada a la entrada del edificio. El acceso interior al salón se consulta por separado.','finish'));if(chosenRoom){section.append(el('h2',chosenRoom.code),el('p','Piso '+chosenRoom.floor+(chosenRoom.note?' · '+chosenRoom.note:'')));if(chosenRoom.photo){const image=el('img',undefined,'photo');image.src=chosenRoom.photo;image.alt='Foto del salón '+chosenRoom.code;section.append(image);}}
  if(r.edges.some(e=>e.estimated))section.append(el('p','Tiempo estimado por distancia y tipo de camino; puedes afinarlo midiendo el recorrido.'));
  if(r.edges.some(e=>e.accessibility==='assumed'))section.append(el('p','Esta ruta usa parámetros de accesibilidad estimados; no son mediciones de campo.'));
  if(r.edges.some(e=>e.kind==='unknown'))section.append(el('p','Este recorrido incluye accesos aproximados o tramos cuyas condiciones no están confirmadas.'));
  if(mode==='shortest')section.append(el('p','Recorrido de menor distancia entre las entradas conectadas. Los tiempos son estimados.'));
  if(mode==='stairs')section.append(el('p',r.stairsEstimated?'La comparación usa estimaciones donde faltan datos: escaleras sin conteo, un escalón cada 0,30 m; tramos sin clasificar, una penalización por metro. Puede variar al confirmar el recorrido.':'Esta opción minimiza los escalones registrados. No implica accesibilidad para silla de ruedas.'));
- section.classList.remove('hidden');updateRoutes();if(map){const coordinates=r.nodes.map(id=>graph.nodes[id].coordinates);map.fitBounds(boundsOf(coordinates),{padding:padding(),maxZoom:18.5,pitch:55});}
+ window.CampusGuidance?.mount(section,r,$('destination').selectedOptions[0]?.textContent?.split(' · ')[0]||'tu destino');section.classList.remove('hidden');updateRoutes();if(map){const coordinates=r.nodes.map(id=>graph.nodes[id].coordinates);map.fitBounds(boundsOf(coordinates),{padding:padding(),maxZoom:18.5,pitch:55});}
 }
 $('preferences').onclick=()=>$('mobility').showModal();$('savePreferences').onclick=()=>{const slope=Number($('slope').value),width=Number($('width').value);if(!$('slope').value||!$('width').value||!Number.isFinite(slope)||!Number.isFinite(width)||slope<0||slope>20||width<50||width>250){toast('Revisa los valores de pendiente y ancho.');return;}profile={maxSlope:slope,minWidth:width};$('mobility').close();if(options.length)compare();};
 for(const b of document.querySelectorAll('[data-close]'))b.onclick=()=>$(b.dataset.close).close();

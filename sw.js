@@ -1,9 +1,9 @@
 'use strict';
-const BUILD='routes-v10-20261112';
+const BUILD='guidance-prototype-v11-20261112';
 const ROOT=new URL('./',self.location.href);
 const PREFIX='campus-pwa-'+encodeURIComponent(ROOT.pathname)+'-';
 const CACHE=PREFIX+BUILD;
-const FILES=['./','./index.html','./manifest.webmanifest','./pwa.js','./community.js','./community.css','./mobile-ui.js','./mobile-ui.css','./location.js','./location.css','./vendor/supabase-2.118.0.js','./icons/icon-192.png','./icons/icon-512.png','./icons/maskable-512.png','./icons/apple-touch-icon.png'];
+const FILES=['./navigation.js','./navigation.css','./','./index.html','./manifest.webmanifest','./pwa.js','./community.js','./community.css','./mobile-ui.js','./mobile-ui.css','./location.js','./location.css','./vendor/supabase-2.118.0.js','./icons/icon-192.png','./icons/icon-512.png','./icons/maskable-512.png','./icons/apple-touch-icon.png'];
 const URLS=FILES.map(p=>new URL(p,ROOT).href);
 self.addEventListener('install',event=>{event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(URLS.map(url=>new Request(url,{cache:'reload'})))));});
 self.addEventListener('activate',event=>{event.waitUntil((async()=>{for(const key of await caches.keys())if(key.startsWith(PREFIX)&&key!==CACHE)await caches.delete(key);await self.clients.claim();})());});
