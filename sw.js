@@ -1,5 +1,5 @@
 'use strict';
-const BUILD='emergency-mobile-v9-20261110';
+const BUILD='routes-v10-20261112';
 const ROOT=new URL('./',self.location.href);
 const PREFIX='campus-pwa-'+encodeURIComponent(ROOT.pathname)+'-';
 const CACHE=PREFIX+BUILD;
