@@ -16,13 +16,13 @@
 
 Los horarios incluidos son del 31 de agosto de 2026, período 202620. Actualizar Aula-Finder descarga datos para la sesión; esa descarga no reemplaza la copia offline incluida en esta versión.
 
-## Prototipo de guía de recorrido
+## Guía de recorrido
 
-Compara rutas y pulsa **Iniciar recorrido** para ver la próxima acción, distancia restante y progreso. **Probar demo** permite avanzar y retroceder sin solicitar ubicación; también se abre directamente con `?recorrido=demo` en la URL del sitio.
+Compara rutas, elige una opción y pulsa **Iniciar recorrido**. La guía solicita permiso de ubicación para seguir tu avance y muestra la próxima acción, distancia restante y progreso. Puedes pausar el GPS y confirmar los pasos manualmente. Al mover el mapa se pausa el centrado; **Centrar en mi ubicación** lo restablece. La demostración opcional sigue disponible en `?recorrido=demo`.
 
 Las instrucciones describen giros, escaleras, rampas, puentes y ascensores. Los pisos de los ascensores son desniveles relativos: solo se muestra «hasta el piso…» si el tramo registra `fromFloor` o `toFloor`. No se deduce un número de piso a partir del desnivel ni de un salón.
 
-El GPS es opcional y solo se activa con su botón. Las posiciones quedan en el navegador. Con precisión peor que ±25 m, se pausa el avance automático. Los ascensores y la llegada siempre requieren confirmación manual; el GPS no distingue niveles interiores. Si hay un desvío, la guía propone revisar la ruta, sin recalcular automáticamente. El esquema del recorrido funciona sin internet.
+Las posiciones quedan en el navegador. Con precisión peor que ±25 m o una posición de más de 15 segundos, se pausa el avance automático. Los ascensores y la llegada siempre requieren confirmación manual; el GPS no distingue niveles interiores. Dos posiciones precisas consecutivas fuera del recorrido permiten ofrecer **Recalcular desde aquí** si existe un punto conectado a menos de 40 m. Se pide confirmar el punto y su nivel; se conservan el destino, las preferencias y el tipo de ruta. Si no hay conexión válida, se conserva el recorrido actual. El esquema y las indicaciones funcionan sin internet tras guardar la aplicación.
 
 `npm test` incluye giros en ambos sentidos, pisos de ascensor, proyección de ubicación e instrucciones para todas las rutas disponibles entre edificios. El GPS real entre edificios y la numeración oficial de pisos requieren validación en campo.
 

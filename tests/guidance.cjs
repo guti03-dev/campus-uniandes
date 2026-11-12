@@ -1,5 +1,5 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
-const {build,project,clean}=require('../navigation.js');
+const {build,project,clean,validFix,nearestStart}=require('../navigation.js');
 const nodes={a:{coordinates:[-74.065,4.601]},b:{coordinates:[-74.065,4.602]},c:{coordinates:[-74.064,4.602]},d:{coordinates:[-74.064,4.603],buildingCode:'ML'}};
 const walk=(id,from,to)=>({id,from,to,kind:'path',meters:100,seconds:80,geometry:{type:'LineString',coordinates:[nodes[from].coordinates,nodes[to].coordinates]}});
 const ab=walk('ab','a','b'),bc=walk('bc','b','c'),cd=walk('cd','c','d');
@@ -15,6 +15,11 @@ assert.match(build({nodes:['c','d'],edges:[{...lift,fromFloor:2,toFloor:7}]},{no
 assert.match(build({nodes:['d','c'],edges:[{...lift,fromFloor:2,toFloor:7}]},{nodes})[0].text,/hasta el piso 2/);
 assert.equal(clean('Cruce OSM 123456'), '');assert.equal(clean('osm-123456'), '');assert.equal(clean('Entrada al puente'),'Entrada al puente');
 const foot=project([-74.065,4.6015],steps);assert.ok(foot.distance<.1);assert.ok(Math.abs(foot.progress-50)<.1);
+const now=Date.now(),fix={coords:{longitude:-74.065,latitude:4.601,accuracy:5},timestamp:now};
+assert.equal(validFix(fix,now),true);assert.equal(validFix({...fix,timestamp:now-20000},now),false);assert.equal(validFix({...fix,coords:{...fix.coords,accuracy:100}},now),false);assert.equal(validFix({...fix,coords:{...fix.coords,longitude:NaN}},now),false);
+assert.equal(nearestStart({nodes,edges:[{...ab,closed:true}]},nodes.a.coordinates),null);
+assert.equal(nearestStart({nodes,edges:[{...ab,oneWay:true}]},nodes.b.coordinates),null);
+assert.equal(nearestStart({nodes,edges:[ab]},nodes.a.coordinates).id,'a');
 // Actual campus routes must produce useful instructions for every available mode.
 const html=fs.readFileSync(require('node:path').join(__dirname,'../index.html'),'utf8'),ctx={window:{}};vm.createContext(ctx);
 for(const m of html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)){const s=m[1];if(s.includes('root.CampusRouting=')||s.includes('root.CampusNavigation=')||s.startsWith('window.CAMPUS_CLIENT_GRAPH='))vm.runInContext(s,ctx);}
