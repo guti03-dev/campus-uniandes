@@ -26,6 +26,14 @@ Las posiciones quedan en el navegador. Con precisión peor que ±25 m o una posi
 
 `npm test` incluye giros en ambos sentidos, pisos de ascensor, proyección de ubicación e instrucciones para todas las rutas disponibles entre edificios. El GPS real entre edificios y la numeración oficial de pisos requieren validación en campo.
 
+## Brújula y orientación
+
+El botón **🧭** abre la brújula. **Activar brújula** solicita permiso cuando el navegador lo requiere; no se solicitan sensores al abrir la aplicación. Con el teléfono casi horizontal y la pantalla en vertical, se muestra hacia dónde apunta y se añade una flecha a la ubicación. **Alinear mapa** orienta el mapa una vez hacia el teléfono; **Norte arriba** lo restablece. La brújula no gira el mapa automáticamente.
+
+Durante un recorrido, **Orientarme** permite comparar esa orientación con la dirección del tramo. Los ascensores no usan indicaciones de brújula. Las posiciones relativas sin referencia al norte, las lecturas antiguas y los datos de poca precisión no se presentan como una dirección fiable. Si el navegador no admite la brújula, se mantienen el norte y las instrucciones normales.
+
+La orientación es aproximada y depende del sensor y su calibración. Los datos permanecen en el navegador; los sensores se suspenden al ocultar la página y se desactivan con su botón. `npm test` incluye lecturas Android/iOS simuladas, permisos, precisión, giro del mapa, lecturas caducadas y suspensión.
+
 ## Cambios posteriores
 
 La caché conserva una versión completa. Después de modificar index.html, pwa.js, iconos o el manifiesto, cambia también `BUILD` en sw.js por un identificador nuevo. Cuando el usuario abra la versión instalada, aparecerá «Actualizar aplicación» en Ajustes si hay un service worker nuevo. Ese botón activa la versión nueva y recarga.

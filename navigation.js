@@ -69,7 +69,7 @@ let state=null,card=null,watch=null,marker=null,session=0,lastFocus=null,tracked
 const demoEnabled=new URLSearchParams(location.search).get('recorrido')==='demo';
 function untrack(){if(watch!==null)navigator.geolocation?.clearWatch(watch);watch=null;marker?.remove();marker=null;if(trackedMap){trackedMap.off('dragstart',dragged);trackedMap.setPadding?.({top:0,right:0,bottom:0,left:0});}trackedMap=null;}
 function dragged(){if(state){state.following=false;render();}}
-function stop(restore=false){session++;untrack();replanDialog?.close();replanDialog?.remove();replanDialog=null;card?.remove();card=null;state=null;document.body.classList.remove('guidance-active');if(restore&&lastFocus?.isConnected){window.CampusSheet?.setLevel(2);lastFocus.focus();}}
+function stop(restore=false){window.CampusOrientation?.setRouteHeading(null);session++;untrack();replanDialog?.close();replanDialog?.remove();replanDialog=null;card?.remove();card=null;state=null;document.body.classList.remove('guidance-active');if(restore&&lastFocus?.isConnected){window.CampusSheet?.setLevel(2);lastFocus.focus();}}
 api.stop=stop;
 api.getState=()=>state?{mode:state.mode,index:state.index,count:state.steps.length,progress:state.progress,arrived:state.arrived,gps:watch!==null,routeMode:state.routeMode,following:state.following,offRoute:state.offRoute,candidate:state.candidate?.id||null}:null;
 function schematic(){
@@ -102,13 +102,15 @@ function render(){
  by('guidanceFollow').hidden=state.mode==='demo'||state.arrived||!state.fix;by('guidanceFollow').textContent=state.following?'Siguiendo ubicación':'Centrar en mi ubicación';
  by('guidanceRecalculate').hidden=!state.offRoute||!state.candidate||state.arrived;
  by('guidanceMap').replaceChildren(schematic());
+ window.CampusOrientation?.setRouteHeading(state.arrived?null:window.CampusOrientation.routeBearing(step,state.progress));
  by('guidanceMessage').textContent=state.message||(state.mode==='demo'?'Simulación: avanza con los botones. No se usa tu ubicación.':watch!==null?'Seguimiento GPS activo. Puedes confirmar cada paso; confirma los ascensores manualmente.':'Avanza al completar cada paso o activa el GPS. Confirma los ascensores manualmente.');
 }
 function advance(){if(!state)return;if(state.arrived){stop(true);return;}if(state.index===state.steps.length-1){state.arrived=true;state.progress=state.route.meters;untrack();session++;state.fix=null;state.offRoute=false;state.candidate=null;}else{state.index++;state.progress=state.steps[state.index].start;}state.point=null;state.message='';render();}
 function showOnMap(point){
  if(typeof map==='undefined'||!map||typeof mapboxgl==='undefined')return;
  if(trackedMap!==map){if(trackedMap)trackedMap.off('dragstart',dragged);marker?.remove();marker=null;trackedMap=map;trackedMap.on('dragstart',dragged);}
- if(!marker){const el=make('div','','guidance-position');el.setAttribute('role','img');el.setAttribute('aria-label','Tu ubicación aproximada');marker=new mapboxgl.Marker({element:el}).setLngLat(point).addTo(map);}else marker.setLngLat(point);
+ if(!marker){const el=make('div','','guidance-position');window.CampusOrientation?.decorate(el,point);el.setAttribute('role','img');el.setAttribute('aria-label','Tu ubicación aproximada');marker=new mapboxgl.Marker({element:el}).setLngLat(point).addTo(map);}else marker.setLngLat(point);
+ window.CampusOrientation?.decorate(marker.getElement?.(),point);
  if(state.following){
   card.dataset.map=map.isStyleLoaded?.()!==false?'ready':'offline';
   const mobile=window.matchMedia?.('(max-width:700px)').matches,rect=card.getBoundingClientRect();
@@ -165,6 +167,7 @@ function start(route,steps,destination,mode,trigger){
  card=make('section','','guidance-card');card.id='guidanceCard';card.setAttribute('aria-label','Guía del recorrido');
  card.innerHTML='<div class="guidance-top"><span id="guidanceBadge"></span><button id="guidanceClose" type="button" aria-label="Cerrar guía">×</button></div><div class="guidance-instruction" aria-live="polite" aria-atomic="true"><span id="guidanceIcon" aria-hidden="true"></span><div><h2 id="guidanceTitle" tabindex="-1"></h2><p id="guidanceDetail"></p></div></div><div class="guidance-content"><div class="guidance-destination"></div><div id="guidanceMap"></div><div class="guidance-metrics"><strong id="guidanceRemaining"></strong><span id="guidanceETA"></span><span id="guidanceStep"></span></div><progress id="guidanceProgress" aria-label="Progreso del recorrido"></progress><p id="guidanceNext"></p><div class="guidance-actions"><button id="guidanceBack" type="button" aria-label="Paso anterior">←</button><button id="guidanceAdvance" type="button"></button></div><p id="guidanceMessage" role="status"></p><div class="guidance-tools"><button id="guidanceGPS" type="button">Activar GPS</button><button id="guidanceReview" type="button">Revisar ruta</button></div></div>';
  card.querySelector('.guidance-destination').textContent='Hacia '+destination+' · hasta la entrada';
+ const orientationHint=make('p','','guidance-orientation');orientationHint.id='guidanceOrientation';card.querySelector('.guidance-destination').after(orientationHint);const orient=make('button','Orientarme');orient.type='button';orient.id='guidanceOrient';orient.onclick=()=>window.CampusOrientation?.open();card.querySelector('.guidance-tools').append(orient);
  if(state.routeMode==='accessible'&&(route.accessUncertain||route.edges.some(e=>e.accessibility==='assumed'))){const note=make('p',route.accessUncertain?'Accesibilidad por confirmar: faltan datos de algunos tramos.':'Esta ruta usa datos de accesibilidad estimados.','guidance-access');card.querySelector('.guidance-destination').after(note);}
  const follow=make('button','Centrar en mi ubicación');follow.type='button';follow.id='guidanceFollow';follow.onclick=()=>{if(state?.fix){state.following=true;showOnMap(state.fix.point);render();}};card.querySelector('.guidance-tools').append(follow);
  const recalc=make('button','Recalcular desde aquí','guidance-recalculate');recalc.type='button';recalc.id='guidanceRecalculate';recalc.hidden=true;recalc.onclick=recalculate;card.querySelector('.guidance-tools').before(recalc);
@@ -178,7 +181,7 @@ api.mount=(section,route,destination)=>{
  const actions=make('div','','guidance-launch'),live=make('button','Iniciar recorrido ↗'),demo=make('button','Probar demo');
  live.type=demo.type='button';live.id='startGuidance';demo.id='demoGuidance';live.className='primary';live.onclick=()=>start(route,steps,destination,'live',live);demo.onclick=()=>start(route,steps,destination,'demo',demo);actions.append(live);if(demoEnabled)actions.append(demo);section.querySelector('.stats')?.after(actions);
 };
-document.addEventListener('keydown',e=>{if(e.key==='Escape'&&state&&!document.querySelector('dialog[open]'))stop(true);});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&state&&!document.querySelector('dialog[open]')&&document.getElementById('compassPanel')?.hidden!==false)stop(true);});
 // The optional demo is separate from the normal start/track flow.
 if(demoEnabled)window.addEventListener('load',()=>{
  by('mapStatus').classList.add('hidden');compare();by('demoGuidance')?.click();
