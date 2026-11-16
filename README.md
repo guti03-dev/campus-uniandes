@@ -16,6 +16,14 @@
 
 Los horarios incluidos son del 31 de agosto de 2026, período 202620. Actualizar Aula-Finder descarga datos para la sesión; esa descarga no reemplaza la copia offline incluida en esta versión.
 
+## Ubicación al abrir la aplicación
+
+Al abrir la aplicación se solicita la ubicación y se muestra un punto azul. La primera vez el navegador pide permiso; si ya lo concediste, la ubicación aparece automáticamente. El punto se actualiza mientras la aplicación está visible. Con precisión de hasta ±50 m y cerca de la red del campus, el mapa se centra una sola vez. Arrastrar el mapa o elegir un destino conserva la vista que estás usando.
+
+El punto azul muestra dónde estás. **Usar mi ubicación** permite confirmar el punto desde el que comienza una ruta. Sin permiso o sin señal se mantiene la selección por edificio. Los puntos con precisión baja se muestran en gris y una ubicación automática de más de 30 segundos se retira. Las posiciones quedan en el navegador.
+
+La ubicación automática se pausa al ocultar la aplicación y durante un recorrido; la guía usa su propio seguimiento. Al volver al mapa se retoma. En el modo de demostración no se solicita ubicación automáticamente.
+
 ## Guía de recorrido
 
 Compara rutas, elige una opción y pulsa **Iniciar recorrido**. La guía solicita permiso de ubicación para seguir tu avance y muestra la próxima acción, distancia restante y progreso. Puedes pausar el GPS y confirmar los pasos manualmente. Al mover el mapa se pausa el centrado; **Centrar en mi ubicación** lo restablece. La demostración opcional sigue disponible en `?recorrido=demo`.

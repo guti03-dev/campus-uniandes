@@ -70,7 +70,7 @@ let state=null,card=null,watch=null,marker=null,session=0,lastFocus=null,tracked
 const demoEnabled=new URLSearchParams(location.search).get('recorrido')==='demo';
 function untrack(){if(watch!==null)navigator.geolocation?.clearWatch(watch);watch=null;marker?.remove();marker=null;if(trackedMap){trackedMap.off('dragstart',dragged);trackedMap.setPadding?.({top:0,right:0,bottom:0,left:0});}trackedMap=null;}
 function dragged(){if(state){state.following=false;render();}}
-function stop(restore=false){window.CampusOrientation?.setRouteHeading(null);session++;untrack();replanDialog?.close();replanDialog?.remove();replanDialog=null;card?.remove();card=null;state=null;document.body.classList.remove('guidance-active');if(restore&&lastFocus?.isConnected){window.CampusSheet?.setLevel(2);lastFocus.focus();}}
+function stop(restore=false){const wasActive=!!state;window.CampusOrientation?.setRouteHeading(null);session++;untrack();replanDialog?.close();replanDialog?.remove();replanDialog=null;card?.remove();card=null;state=null;document.body.classList.remove('guidance-active');if(wasActive)window.dispatchEvent(new Event('campus:guidance-stop'));if(restore&&lastFocus?.isConnected){window.CampusSheet?.setLevel(2);lastFocus.focus();}}
 api.stop=stop;
 api.getState=()=>state?{mode:state.mode,index:state.index,count:state.steps.length,progress:state.progress,arrived:state.arrived,gps:watch!==null,routeMode:state.routeMode,following:state.following,offRoute:state.offRoute,candidate:state.candidate?.id||null}:null;
 function schematic(){

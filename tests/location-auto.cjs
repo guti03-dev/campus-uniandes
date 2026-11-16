@@ -1,0 +1,36 @@
+const {JSDOM}=require('jsdom'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
+const source=fs.readFileSync(path.join(__dirname,'../location.js'),'utf8');
+const settle=()=>new Promise(resolve=>setImmediate(resolve));
+function fixture({permission='granted',query=true,secure=true,demo=false,mapReady=true,deferred=false}={}){
+ const dom=new JSDOM('<div id="map"></div><select id="origin"><option value="ML">ML</option><option value="W">W</option></select><select id="destination"><option value="W">W</option></select><button id="swap"></button><button id="findRoutes"></button>',{url:'https://campus.example/'+(demo?'?recorrido=demo':''),runScripts:'outside-only',pretendToBeVisual:true}),w=dom.window,d=w.document;
+ Object.defineProperty(w,'isSecureContext',{value:secure});let hidden=false,clock=Date.now(),next=0,permissionChange,resolvePermission;const watchers=new Map(),oldWatchers=[],moves=[],events=new Map(),timers=new Map();
+ Object.defineProperty(d,'hidden',{get:()=>hidden});w.Date.now=()=>clock;w.setTimeout=(fn,ms)=>{const id=++next;timers.set(id,{fn,ms});return id};w.clearTimeout=id=>timers.delete(id);
+ const status={state:permission,addEventListener(name,fn){permissionChange=fn;}};
+ if(query)Object.defineProperty(w.navigator,'permissions',{value:{query:()=>deferred?new Promise(resolve=>{resolvePermission=()=>resolve(status)}):Promise.resolve(status)}});
+ let manual;
+ Object.defineProperty(w.navigator,'geolocation',{value:{watchPosition(ok,no,options){const id=++next;const item={id,ok,no,options};watchers.set(id,item);oldWatchers.push(item);return id},clearWatch(id){watchers.delete(id)},getCurrentPosition(ok,no){manual={ok,no}}}});
+ w.toast=()=>{};w.CampusSheet={setLevel(){}};
+ w.mockMap={flyTo(options){moves.push(options)},on(name,fn){events.set(name,fn)},off(name,fn){if(events.get(name)===fn)events.delete(name)},getCanvas:()=>d.getElementById('map')};
+ w.mapboxgl={Marker:class{constructor({element}){this.element=element}setLngLat(point){this.point=point;this.element.dataset.point=JSON.stringify(point);return this}addTo(){d.getElementById('map').append(this.element);return this}remove(){this.element.remove()}getElement(){return this.element}}};
+ w.eval("const CATALOG={buildings:[{code:'ML',name:'Mario Laserna'},{code:'W',name:'W'}]};const graph={nodes:{a:{coordinates:[-74.065,4.601],buildingCode:'ML'},b:{coordinates:[-74.0649,4.601],buildingCode:'W'}},edges:[{from:'a',to:'b',closed:false}]};let map="+(mapReady?'window.mockMap':'null')+';window.bindTestMap=()=>{map=window.mockMap};'+source);
+ const fix=(longitude=-74.065,latitude=4.601,accuracy=5,timestamp=clock)=>({coords:{longitude,latitude,accuracy},timestamp});
+ const current=()=>[...watchers.values()].at(-1),marker=()=>d.querySelector('.location-user-point');
+ return {dom,w,d,watchers,moves,events,status,timers,oldWatchers,fix,current,marker,manual:()=>manual,permission(value){status.state=value;permissionChange?.()},hidden(value){hidden=value;d.dispatchEvent(new w.Event('visibilitychange'))},advance(ms){clock+=ms;},resolvePermission:()=>resolvePermission(),mapReady(){w.bindTestMap();w.dispatchEvent(new w.Event('campus:map-ready'))},close(){dom.window.close()}};
+}
+(async()=>{
+ for(const permission of ['granted','prompt']){
+  const f=fixture({permission,mapReady:false});await settle();assert.equal(f.watchers.size,1,'Startup must request location without a click');assert.equal(f.current().options.enableHighAccuracy,true);
+  f.current().ok(f.fix());assert.equal(f.marker(),null);assert.equal(f.d.getElementById('origin').value,'ML');assert.equal(f.d.getElementById('locationCandidates').hidden,true);
+  f.mapReady();assert.ok(f.marker());assert.equal(f.moves.length,1);const original=f.marker();f.current().ok(f.fix(-74.06495));assert.equal(f.marker(),original,'GPS updates reuse the blue marker');assert.equal(f.moves.length,1,'Only the initial fix recenters the map');
+  f.hidden(true);assert.equal(f.watchers.size,0);assert.equal(f.marker(),null);f.oldWatchers[0].ok(f.fix());assert.equal(f.marker(),null,'Stopped watchers cannot paint a point');f.hidden(false);assert.equal(f.watchers.size,1);f.current().ok(f.fix());assert.ok(f.marker());assert.equal(f.moves.length,1);
+  f.d.body.classList.add('guidance-active');f.w.dispatchEvent(new f.w.Event('campus:guidance-start'));assert.equal(f.watchers.size,0);assert.equal(f.marker(),null);f.d.body.classList.remove('guidance-active');f.w.dispatchEvent(new f.w.Event('campus:guidance-stop'));await settle();assert.equal(f.watchers.size,1);
+  f.d.getElementById('locateOrigin').click();assert.equal(f.watchers.size,0);f.manual().ok(f.fix());assert.equal(f.d.getElementById('locationCandidates').hidden,false);assert.equal(f.d.getElementById('origin').value,'ML');f.d.getElementById('confirmLocation').click();await settle();assert.equal(f.d.getElementById('origin').value,'a');assert.equal(f.watchers.size,1);
+  f.close();
+ }
+ let f=fixture({permission:'denied'});await settle();assert.equal(f.watchers.size,0);assert.match(f.d.getElementById('locationMessage').textContent,/sin permiso/);f.w.dispatchEvent(new f.w.Event('pageshow'));assert.equal(f.watchers.size,0);f.permission('granted');assert.equal(f.watchers.size,1);f.current().ok(f.fix());assert.ok(f.marker());f.permission('denied');assert.equal(f.watchers.size,0);assert.equal(f.marker(),null);f.close();
+ f=fixture({query:false});await settle();assert.equal(f.watchers.size,1,'Safari-style fallback uses native geolocation permission');f.current().no({code:1});assert.equal(f.watchers.size,0);assert.equal(f.w.CampusLocation.getState().denied,true);f.hidden(true);f.hidden(false);assert.equal(f.watchers.size,0,'A denial is not retried automatically');f.d.getElementById('locateOrigin').click();f.manual().ok(f.fix());f.d.getElementById('confirmLocation').click();await settle();assert.equal(f.watchers.size,1);f.close();
+ f=fixture();await settle();f.current().ok(f.fix(-74.065,4.601,100));assert.ok(f.marker().classList.contains('location-uncertain'));assert.equal(f.moves.length,0);f.current().ok(f.fix(0,0));assert.equal(f.moves.length,0,'An outside-campus fix does not move the campus view');assert.match(f.d.getElementById('locationMessage').textContent,/fuera de la red/);f.events.get('dragstart')();f.current().ok(f.fix());assert.equal(f.moves.length,0,'A late GPS fix must not undo a manual pan');assert.ok(!f.marker().classList.contains('location-uncertain'));f.advance(31000);for(const {fn} of [...f.timers.values()])fn();assert.equal(f.marker(),null);f.current().ok(f.fix(200,90));assert.equal(f.marker(),null);f.current().ok(f.fix(-74.065,4.601,5,Date.now()-60000));assert.equal(f.marker(),null);f.close();
+ f=fixture({deferred:true});await settle();f.d.body.classList.add('guidance-active');f.w.dispatchEvent(new f.w.Event('campus:guidance-start'));f.resolvePermission();await settle();assert.equal(f.watchers.size,0,'Late permission lookup does not duplicate navigation GPS');f.close();
+ for(const options of [{demo:true},{secure:false}]){f=fixture(options);await settle();assert.equal(f.watchers.size,0);f.close();}
+ console.log('PASS: startup permissions, delayed map, live point, one-time centering, denial/revocation, manual origin, stale/poor fixes, visibility and navigation handoff');
+})().catch(e=>{console.error(e);process.exitCode=1});

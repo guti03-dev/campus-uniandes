@@ -1,5 +1,5 @@
 'use strict';
-const BUILD='community-markers-restored-v20-20261116';
+const BUILD='automatic-location-v21-20261116';
 const ROOT=new URL('./',self.location.href);
 const PREFIX='campus-pwa-'+encodeURIComponent(ROOT.pathname)+'-';
 const CACHE=PREFIX+BUILD;
