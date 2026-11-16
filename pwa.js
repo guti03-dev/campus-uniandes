@@ -1,3 +1,14 @@
+// Load the route assessment before allowing comparisons, including direct room actions.
+(function(){
+ const base=new URL('./',location.href),button=document.getElementById('findRoutes');if(!button)return;
+ const showLoading=()=>{const target=document.getElementById('alternatives');target.replaceChildren();const p=document.createElement('p');p.textContent='Cargando la revisión de accesibilidad…';p.setAttribute('role','status');target.append(p);};
+ window.compare=showLoading;button.onclick=showLoading;button.disabled=true;
+ const fail=()=>{const target=document.getElementById('alternatives');target.replaceChildren();const p=document.createElement('p');p.textContent='No se pudo cargar la revisión de accesibilidad. Recarga la aplicación para comparar rutas.';p.setAttribute('role','status');target.append(p);};
+ const data=document.createElement('script');data.src=new URL('accessibility.js',base);data.onerror=fail;
+ data.onload=()=>{const ui=document.createElement('script');ui.src=new URL('accessibility-ui.js',base);ui.onerror=fail;ui.onload=()=>{button.disabled=false;};document.body.append(ui);};
+ document.body.append(data);
+})();
+
 (function(){
 'use strict';
 const host=document.getElementById('menu-settings');

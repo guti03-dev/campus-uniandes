@@ -1,0 +1,31 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),{JSDOM}=require('jsdom');
+const A=require('../accessibility.js');
+const base={id:'walk',kind:'path',steps:0,slope:0,width:120,surface:'firm',accessibility:'verified',closed:false,coordinates:[[-74.065,4.602],[-74.0649,4.602]]};
+const stair={...base,id:'stairs',kind:'stairs',steps:null,accessibility:'no',slope:null,width:null,surface:'unknown'};
+assert.equal(A.edgeSummary(stair).hasStairs,true);assert.deepEqual(A.edgeSummary(stair).pending,[]);
+assert.equal(A.routeSummary({edges:[stair]}).stepLabel,'Escaleras identificadas');
+assert.equal(A.routeSummary({edges:[{...stair,steps:0}]}).stepLabel,'Escaleras identificadas');
+assert.equal(A.routeSummary({edges:[{...stair,steps:12}]}).stepLabel,'12 escalones registrados');
+assert.equal(A.edgeSummary({...base,kind:'unknown',steps:3}).hasStairs,true);
+assert.equal(A.edgeSummary(base).status,'recorded');assert.equal(A.edgeSummary({...base,accessibility:'assumed'}).status,'pending');
+const conflict={...base,review:'Imported from OSM; access and accessibility not field verified'};assert.equal(A.edgeSummary(conflict).status,'pending');assert.equal(A.edgeSummary(conflict).conflict,true);
+const unknown={...base,id:'osm-123',kind:'unknown',steps:null,slope:null,width:null,surface:'unknown',accessibility:'unknown'};
+const typeConflict={...base,kind:'ramp',review:'Escalera interpretada de la ilustración: borde de El Bobo entre H y B. Escalones sin contar.'};
+assert.equal(A.edgeSummary(typeConflict).typeConflict,true);assert.equal(A.routeSummary({edges:[typeConflict]}).hasTypeConflict,true);assert.match(A.routeSummary({edges:[typeConflict]}).stepLabel,/Posibles escaleras/);
+assert.deepEqual(A.edgeSummary(unknown).pending,['kind','steps','slope','width','surface','field']);
+assert.equal(A.edgeSummary({...base,width:80}).status,'barrier');assert.equal(A.edgeSummary({...base,slope:9}).status,'barrier');assert.equal(A.edgeSummary({...base,surface:'uneven'}).status,'barrier');assert.equal(A.edgeSummary({...base,closed:true}).status,'barrier');
+assert.equal(A.routeSummary({edges:[]}).status,'empty');
+const mixed=A.routeSummary({edges:[stair,unknown]});assert.equal(mixed.hasStairs,true);assert.equal(mixed.pendingCount,1);assert.equal(mixed.stepLabel,'Escaleras identificadas');
+const dom=new JSDOM('<section></section>'),section=dom.window.document.querySelector('section');
+A.appendDetails(section,{edges:[stair,unknown]},{ML:[-74.065,4.602]});assert.match(section.querySelector('.route-access-status').textContent,/escaleras identificadas/);const items=section.querySelectorAll('li');assert.doesNotMatch(items[0].textContent,/verificar|comprobar/i);assert.match(items[1].textContent,/Por comprobar/);assert.doesNotMatch(section.textContent,/osm-123/);
+section.replaceChildren();A.appendDetails(section,{edges:[stair]},{ML:[-74.065,4.602]});assert.doesNotMatch(section.textContent,/escalones sin verificar|falta revisar|Por comprobar/i);dom.window.close();
+// Existing stair classification must remain authoritative even when the count is absent.
+const html=fs.readFileSync(path.join(__dirname,'../index.html'),'utf8'),graph=JSON.parse(html.match(/window\.CAMPUS_CLIENT_GRAPH=([\s\S]*?);<\/script>/)[1]),before=JSON.stringify(graph);
+for(const edge of graph.edges){const result=A.edgeSummary(edge);if(edge.kind==='stairs'){assert.equal(result.status,'stairs');assert.equal(result.pending.length,0);}if(edge.accessibility==='assumed'&&edge.kind!=='stairs')assert.ok(result.pending.includes('field'));}
+assert.equal(JSON.stringify(graph),before);
+const vm=require('node:vm'),ctx={window:{}};vm.createContext(ctx);for(const m of html.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g))if(m[1].includes('root.CampusRouting='))vm.runInContext(m[1],ctx);
+A.guardRouting(ctx.window.CampusRouting);A.guardRouting(ctx.window.CampusRouting);
+const disputedGraph={nodes:{a:{coordinates:base.coordinates[0]},b:{coordinates:base.coordinates[1]}},edges:[{...typeConflict,from:'a',to:'b',meters:11,seconds:12,geometry:{type:'LineString',coordinates:base.coordinates}}]};
+assert.ok(ctx.window.CampusRouting.route(disputedGraph,'a','b','shortest'));assert.equal(ctx.window.CampusRouting.route(disputedGraph,'a','b','accessible',{allowUnverified:true}),null);
+const guidance=require('../navigation.js').build({nodes:['a','b'],edges:disputedGraph.edges},disputedGraph);assert.equal(guidance[0].title,'Confirma el tipo de acceso');assert.equal(guidance[0].confirmLabel,'Ya revisé el acceso');
+console.log('PASS: known stairs with unknown count, incomplete non-stair data, assumptions, contradictory records, barriers, per-segment UI and unchanged network');

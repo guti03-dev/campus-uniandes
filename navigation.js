@@ -1,6 +1,7 @@
 /* Campus walking guidance. Position remains in this browser. */
 (function(root){
 'use strict';
+const accessRules=typeof module!=='undefined'&&module.exports?require('./accessibility.js'):root.CampusAccessibility;
 const rad=Math.PI/180;
 function distance(a,b){return 12742000*Math.asin(Math.min(1,Math.sqrt(Math.sin((b[1]-a[1])*rad/2)**2+Math.cos(a[1]*rad)*Math.cos(b[1]*rad)*Math.sin((b[0]-a[0])*rad/2)**2)));}
 const bearing=(a,b)=>Math.atan2((b[0]-a[0])*Math.cos((a[1]+b[1])*rad/2),b[1]-a[1])/rad;
@@ -11,6 +12,11 @@ function build(route,network){
  const flush=()=>{if(!current)return;current.text=current.title+(current.meters>=1?' durante '+Math.max(1,Math.round(current.meters))+' m':'')+'.';current.end=total;output.push(current);current=null;};
  for(let i=0;i<route.edges.length;i++){
   const e=route.edges[i],coords=e.geometry?.coordinates||e.coordinates||[],forward=e.from===route.nodes[i];
+  if((accessRules||root.CampusAccessibility)?.hasStairConflict(e)){
+   flush();const start=total;total+=e.meters;
+   output.push({kind:'unknown',title:'Confirma el tipo de acceso',detail:'El mapa lo marca como rampa, pero una nota indica escaleras. Revisa la señalización antes de continuar.',text:'Confirma el tipo de acceso: el tramo figura como rampa y también como escalera.',icon:'?',meters:e.meters,seconds:e.seconds,start,end:total,coordinates:coords,confirm:true,confirmLabel:'Ya revisé el acceso'});
+   previous=null;continue;
+  }
   if(['stairs','ramp','elevator','bridge'].includes(e.kind)){
    flush();const start=total;total+=e.meters;
    let title,detail='',icon;
@@ -96,7 +102,7 @@ function render(){
  const progress=by('guidanceProgress');progress.max=state.route.meters||1;progress.value=state.arrived?progress.max:state.progress;
  by('guidanceStep').textContent=state.arrived?'Recorrido completado':'Paso '+(state.index+1)+' de '+state.steps.length;
  by('guidanceNext').textContent=state.arrived?'El acceso al salón se consulta por separado.':next?'Después: '+next.title.toLowerCase()+'.':'Después: llegada a '+state.destination+'.';
- by('guidanceAdvance').textContent=state.arrived?'Finalizar':step.confirm?'Ya salí del ascensor':state.index===state.steps.length-1?'Confirmar llegada':'Siguiente paso';
+ by('guidanceAdvance').textContent=state.arrived?'Finalizar':step.confirm?(step.confirmLabel||'Ya salí del ascensor'):state.index===state.steps.length-1?'Confirmar llegada':'Siguiente paso';
  by('guidanceBack').disabled=state.index===0||state.arrived||watch!==null;
  by('guidanceGPS').hidden=state.mode==='demo'||state.arrived;by('guidanceGPS').textContent=watch!==null?'Pausar GPS':'Activar GPS';
  by('guidanceFollow').hidden=state.mode==='demo'||state.arrived||!state.fix;by('guidanceFollow').textContent=state.following?'Siguiendo ubicación':'Centrar en mi ubicación';
@@ -157,7 +163,7 @@ function gps(){
    const local=project(point,state.steps.slice(state.index,state.index+2));
    if(local.distance<=Math.max(20,accuracy*2)){state.progress=Math.max(state.progress,Math.min(local.progress,current.end));if(local.index===1&&local.progress>=current.end+3){state.index++;state.progress=state.steps[state.index].start;}}
   }
-  state.message=current.confirm?'Confirma «Ya salí del ascensor» al llegar al nivel indicado. El GPS no distingue pisos.':'Ubicación aproximada · ±'+Math.round(accuracy)+' m. Confirma el paso si el GPS no avanza.';
+  state.message=current.confirm?(current.kind==='elevator'?'Confirma «Ya salí del ascensor» al llegar al nivel indicado. El GPS no distingue pisos.':'Confirma el acceso antes de continuar: este tramo tiene datos contradictorios.'):'Ubicación aproximada · ±'+Math.round(accuracy)+' m. Confirma el paso si el GPS no avanza.';
   render();
  },error=>{if(token!==session||!state)return;state.message=error.code===1?'No se permitió el acceso a tu ubicación. Continúa con los botones.':'No se pudo obtener tu ubicación. Continúa con los botones o vuelve a activar el GPS.';untrack();state.fix=null;state.offRoute=false;state.candidate=null;session++;render();},{enableHighAccuracy:true,timeout:15000,maximumAge:0});
  render();
@@ -168,7 +174,7 @@ function start(route,steps,destination,mode,trigger){
  card.innerHTML='<div class="guidance-top"><span id="guidanceBadge"></span><button id="guidanceClose" type="button" aria-label="Cerrar guía">×</button></div><div class="guidance-instruction" aria-live="polite" aria-atomic="true"><span id="guidanceIcon" aria-hidden="true"></span><div><h2 id="guidanceTitle" tabindex="-1"></h2><p id="guidanceDetail"></p></div></div><div class="guidance-content"><div class="guidance-destination"></div><div id="guidanceMap"></div><div class="guidance-metrics"><strong id="guidanceRemaining"></strong><span id="guidanceETA"></span><span id="guidanceStep"></span></div><progress id="guidanceProgress" aria-label="Progreso del recorrido"></progress><p id="guidanceNext"></p><div class="guidance-actions"><button id="guidanceBack" type="button" aria-label="Paso anterior">←</button><button id="guidanceAdvance" type="button"></button></div><p id="guidanceMessage" role="status"></p><div class="guidance-tools"><button id="guidanceGPS" type="button">Activar GPS</button><button id="guidanceReview" type="button">Revisar ruta</button></div></div>';
  card.querySelector('.guidance-destination').textContent='Hacia '+destination+' · hasta la entrada';
  const orientationHint=make('p','','guidance-orientation');orientationHint.id='guidanceOrientation';card.querySelector('.guidance-destination').after(orientationHint);const orient=make('button','Orientarme');orient.type='button';orient.id='guidanceOrient';orient.onclick=()=>window.CampusOrientation?.open();card.querySelector('.guidance-tools').append(orient);
- if(state.routeMode==='accessible'&&(route.accessUncertain||route.edges.some(e=>e.accessibility==='assumed'))){const note=make('p',route.accessUncertain?'Accesibilidad por confirmar: faltan datos de algunos tramos.':'Esta ruta usa datos de accesibilidad estimados.','guidance-access');card.querySelector('.guidance-destination').after(note);}
+ const access=window.CampusAccessibility?.routeSummary(route,state.profile);if(access?.hasStairs){card.querySelector('.guidance-destination').after(make('p','Este recorrido incluye escaleras identificadas.','guidance-access'));}else if(access?.hasTypeConflict){card.querySelector('.guidance-destination').after(make('p','Posibles escaleras: este recorrido incluye un acceso con datos contradictorios.','guidance-access'));}else if(state.routeMode==='accessible'&&(!access||access.status!=='recorded')){card.querySelector('.guidance-destination').after(make('p','Accesibilidad por confirmar: hay tramos pendientes de comprobación en campo.','guidance-access'));}
  const follow=make('button','Centrar en mi ubicación');follow.type='button';follow.id='guidanceFollow';follow.onclick=()=>{if(state?.fix){state.following=true;showOnMap(state.fix.point);render();}};card.querySelector('.guidance-tools').append(follow);
  const recalc=make('button','Recalcular desde aquí','guidance-recalculate');recalc.type='button';recalc.id='guidanceRecalculate';recalc.hidden=true;recalc.onclick=recalculate;card.querySelector('.guidance-tools').before(recalc);
  card.querySelector('.guidance-content').append(card.querySelector('.guidance-actions'));document.body.append(card);document.body.classList.add('guidance-active');window.dispatchEvent(new Event('campus:guidance-start'));window.CampusSheet?.setLevel(0);
