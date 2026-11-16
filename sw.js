@@ -1,5 +1,5 @@
 'use strict';
-const BUILD='stairs-entrances-v17-20261116';
+const BUILD='stairs-entrances-v18-20261116';
 const ROOT=new URL('./',self.location.href);
 const PREFIX='campus-pwa-'+encodeURIComponent(ROOT.pathname)+'-';
 const CACHE=PREFIX+BUILD;
