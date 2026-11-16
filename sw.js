@@ -1,5 +1,5 @@
 'use strict';
-const BUILD='compact-points-food-v19-20261116';
+const BUILD='community-markers-restored-v20-20261116';
 const ROOT=new URL('./',self.location.href);
 const PREFIX='campus-pwa-'+encodeURIComponent(ROOT.pathname)+'-';
 const CACHE=PREFIX+BUILD;

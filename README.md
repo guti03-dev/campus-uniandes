@@ -42,7 +42,7 @@ La [revisión de caminos y entradas](audit/README.md) documenta las tres entrada
 
 ## Marcadores y restaurantes
 
-Los avisos y restaurantes cercanos se agrupan al alejar el mapa y muestran un contador. Los símbolos cambian de 16 a 30 px según el zoom; al acercar se separan los puntos de distintas ubicaciones. Un grupo permite consultar todos sus avisos o elegir un restaurante. Los nombres de restaurantes aparecen desde zoom 18; los edificios conservan sus marcadores.
+Los avisos mantienen el tamaño original de 42 px y su separación de 38 px a la derecha y 36 px hacia arriba respecto al lugar. Solo se agrupan los avisos que comparten la misma ubicación. Los restaurantes cercanos se agrupan al alejar el mapa y sus símbolos cambian de 16 a 30 px según el zoom. Un grupo permite consultar sus avisos o elegir un restaurante. Los edificios conservan sus marcadores.
 
 El directorio incluye los siete enlaces recibidos el 16 de noviembre de 2026: Starbucks City U, WingStop UniAndes, Puerto Arepa, Chick n Chips, One Burrito, Acai Bowls Colombia y One Burrito Pola. Se actualizaron Starbucks y One Burrito Pola sin duplicarlos. Los puntos usan las coordenadas del lugar en la ficha de Google Maps, que pueden diferir del centro de la vista compartida. Hay 25 lugares seleccionados y 30 fichas en total.
 
