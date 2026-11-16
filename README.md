@@ -40,6 +40,12 @@ Las rutas muestran distancia, duración y **Sin escaleras** o el conteo de escal
 
 La [revisión de caminos y entradas](audit/README.md) documenta las tres entradas que tenían la letra J en el sector de ML y ahora pertenecen a ML. La entrada de J permanece junto al edificio J. El módulo `accessibility.js` aplica estas correcciones al cargar; `npm run audit:accessibility` reproduce el inventario y las rutas con las mismas reglas.
 
+## Marcadores y restaurantes
+
+Los avisos y restaurantes cercanos se agrupan al alejar el mapa y muestran un contador. Los símbolos cambian de 16 a 30 px según el zoom; al acercar se separan los puntos de distintas ubicaciones. Un grupo permite consultar todos sus avisos o elegir un restaurante. Los nombres de restaurantes aparecen desde zoom 18; los edificios conservan sus marcadores.
+
+El directorio incluye los siete enlaces recibidos el 16 de noviembre de 2026: Starbucks City U, WingStop UniAndes, Puerto Arepa, Chick n Chips, One Burrito, Acai Bowls Colombia y One Burrito Pola. Se actualizaron Starbucks y One Burrito Pola sin duplicarlos. Los puntos usan las coordenadas del lugar en la ficha de Google Maps, que pueden diferir del centro de la vista compartida. Hay 25 lugares seleccionados y 30 fichas en total.
+
 ## Cambios posteriores
 
 La caché conserva una versión completa. Después de modificar index.html, pwa.js, iconos o el manifiesto, cambia también `BUILD` en sw.js por un identificador nuevo. Cuando el usuario abra la versión instalada, aparecerá «Actualizar aplicación» en Ajustes si hay un service worker nuevo. Ese botón activa la versión nueva y recarga.
