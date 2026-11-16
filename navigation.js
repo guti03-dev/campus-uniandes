@@ -11,12 +11,7 @@ function build(route,network){
  const output=[];let current=null,previous=null,total=0;
  const flush=()=>{if(!current)return;current.text=current.title+(current.meters>=1?' durante '+Math.max(1,Math.round(current.meters))+' m':'')+'.';current.end=total;output.push(current);current=null;};
  for(let i=0;i<route.edges.length;i++){
-  const e=route.edges[i],coords=e.geometry?.coordinates||e.coordinates||[],forward=e.from===route.nodes[i];
-  if((accessRules||root.CampusAccessibility)?.hasStairConflict(e)){
-   flush();const start=total;total+=e.meters;
-   output.push({kind:'unknown',title:'Confirma el tipo de acceso',detail:'El mapa lo marca como rampa, pero una nota indica escaleras. Revisa la señalización antes de continuar.',text:'Confirma el tipo de acceso: el tramo figura como rampa y también como escalera.',icon:'?',meters:e.meters,seconds:e.seconds,start,end:total,coordinates:coords,confirm:true,confirmLabel:'Ya revisé el acceso'});
-   previous=null;continue;
-  }
+  const source=route.edges[i],rules=accessRules||root.CampusAccessibility,e=rules?.hasStairs(source)?{...source,kind:'stairs'}:source,coords=e.geometry?.coordinates||e.coordinates||[],forward=e.from===route.nodes[i];
   if(['stairs','ramp','elevator','bridge'].includes(e.kind)){
    flush();const start=total;total+=e.meters;
    let title,detail='',icon;
@@ -28,7 +23,7 @@ function build(route,network){
     if(target!==undefined&&target!==null&&String(target).trim()!=='')detail='Ve hasta el piso '+String(target)+'.';
     else detail='Recorre '+e.floors+' '+(e.floors===1?'piso':'pisos')+'. Número de piso de llegada por confirmar.';
     icon='↕';
-   }else{title=e.kind==='stairs'?'Toma las escaleras':e.kind==='ramp'?'Continúa por la rampa':'Cruza el puente';icon=e.kind==='stairs'?'▥':e.kind==='ramp'?'↗':'↔';detail='Recorre '+Math.max(1,Math.round(e.meters))+' m.';}
+   }else{title=e.kind==='stairs'?'Toma las escaleras':e.kind==='ramp'?'Continúa por la rampa':'Cruza el puente';icon=e.kind==='stairs'?'▥':e.kind==='ramp'?'↗':'↔';detail=e.kind==='stairs'&&rules?(rules.isEstimate(e)?'≈':'')+rules.stairCount(e)+' escalones · '+Math.max(1,Math.round(e.meters))+' m.':'Recorre '+Math.max(1,Math.round(e.meters))+' m.';}
    output.push({kind:e.kind,title,detail,text:title+'. '+detail,icon,meters:e.meters,seconds:e.seconds,start,end:total,coordinates:coords,confirm:e.kind==='elevator'});
    previous=null;continue;
   }
@@ -129,7 +124,7 @@ function recalculate(){
  if(!state?.candidate||!state.fix||Date.now()-state.fix.time>15000){if(state){state.message='Espera una ubicación precisa y reciente para recalcular.';render();}return;}
  const candidate=state.candidate,token=session;
  replanDialog?.remove();replanDialog=make('dialog','','campus-menu guidance-replan');replanDialog.id='guidanceReplan';replanDialog.setAttribute('aria-labelledby','guidanceReplanTitle');
- replanDialog.innerHTML='<h2 id="guidanceReplanTitle">Retomar el recorrido</h2><p id="guidanceReplanPoint"></p><p>Confirma que puedes llegar a este punto y que estás en el mismo nivel. El acceso desde tu ubicación hasta el punto no está verificado.</p><p id="guidanceReplanMessage" role="status"></p><button id="guidanceReplanConfirm" class="primary" type="button">Confirmar punto y recalcular</button><button id="guidanceReplanCancel" type="button">Cancelar</button>';
+ replanDialog.innerHTML='<h2 id="guidanceReplanTitle">Retomar el recorrido</h2><p id="guidanceReplanPoint"></p><p>Confirma que puedes llegar a este punto y que estás en el mismo nivel.</p><p id="guidanceReplanMessage" role="status"></p><button id="guidanceReplanConfirm" class="primary" type="button">Confirmar punto y recalcular</button><button id="guidanceReplanCancel" type="button">Cancelar</button>';
  const pointName=clean(candidate.node.buildingCode)?'Entrada de '+candidate.node.buildingCode:clean(candidate.node.name)||'Cruce del camino';
  replanDialog.querySelector('#guidanceReplanPoint').textContent=pointName+' · a '+Math.round(candidate.distance)+' m. Se conservarán tu destino y el tipo de ruta seleccionado.';
  document.body.append(replanDialog);const dialog=replanDialog;dialog.showModal();
@@ -174,7 +169,7 @@ function start(route,steps,destination,mode,trigger){
  card.innerHTML='<div class="guidance-top"><span id="guidanceBadge"></span><button id="guidanceClose" type="button" aria-label="Cerrar guía">×</button></div><div class="guidance-instruction" aria-live="polite" aria-atomic="true"><span id="guidanceIcon" aria-hidden="true"></span><div><h2 id="guidanceTitle" tabindex="-1"></h2><p id="guidanceDetail"></p></div></div><div class="guidance-content"><div class="guidance-destination"></div><div id="guidanceMap"></div><div class="guidance-metrics"><strong id="guidanceRemaining"></strong><span id="guidanceETA"></span><span id="guidanceStep"></span></div><progress id="guidanceProgress" aria-label="Progreso del recorrido"></progress><p id="guidanceNext"></p><div class="guidance-actions"><button id="guidanceBack" type="button" aria-label="Paso anterior">←</button><button id="guidanceAdvance" type="button"></button></div><p id="guidanceMessage" role="status"></p><div class="guidance-tools"><button id="guidanceGPS" type="button">Activar GPS</button><button id="guidanceReview" type="button">Revisar ruta</button></div></div>';
  card.querySelector('.guidance-destination').textContent='Hacia '+destination+' · hasta la entrada';
  const orientationHint=make('p','','guidance-orientation');orientationHint.id='guidanceOrientation';card.querySelector('.guidance-destination').after(orientationHint);const orient=make('button','Orientarme');orient.type='button';orient.id='guidanceOrient';orient.onclick=()=>window.CampusOrientation?.open();card.querySelector('.guidance-tools').append(orient);
- const access=window.CampusAccessibility?.routeSummary(route,state.profile);if(access?.hasStairs){card.querySelector('.guidance-destination').after(make('p','Este recorrido incluye escaleras identificadas.','guidance-access'));}else if(access?.hasTypeConflict){card.querySelector('.guidance-destination').after(make('p','Posibles escaleras: este recorrido incluye un acceso con datos contradictorios.','guidance-access'));}else if(state.routeMode==='accessible'&&(!access||access.status!=='recorded')){card.querySelector('.guidance-destination').after(make('p','Accesibilidad por confirmar: hay tramos pendientes de comprobación en campo.','guidance-access'));}
+ const access=window.CampusAccessibility?.routeSummary(route);if(access)card.querySelector('.guidance-destination').after(make('p',access.label,'guidance-access'));
  const follow=make('button','Centrar en mi ubicación');follow.type='button';follow.id='guidanceFollow';follow.onclick=()=>{if(state?.fix){state.following=true;showOnMap(state.fix.point);render();}};card.querySelector('.guidance-tools').append(follow);
  const recalc=make('button','Recalcular desde aquí','guidance-recalculate');recalc.type='button';recalc.id='guidanceRecalculate';recalc.hidden=true;recalc.onclick=recalculate;card.querySelector('.guidance-tools').before(recalc);
  card.querySelector('.guidance-content').append(card.querySelector('.guidance-actions'));document.body.append(card);document.body.classList.add('guidance-active');window.dispatchEvent(new Event('campus:guidance-start'));window.CampusSheet?.setLevel(0);

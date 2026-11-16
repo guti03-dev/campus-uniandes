@@ -13,5 +13,3 @@
 @media(max-width:700px){body.guidance-active main.panel{visibility:hidden}.guidance-card{left:12px;right:12px;top:auto;bottom:calc(12px + env(safe-area-inset-bottom));max-height:min(58dvh,calc(100dvh - 146px - env(safe-area-inset-top) - env(safe-area-inset-bottom)))}}
 
 .guidance-card .guidance-actions{bottom:0;padding-bottom:10px}
-
-.route-access-status{font-size:12px;line-height:1.5;border-left:3px solid #a37b26;padding:9px 11px;background:#fff7e4;border-radius:5px}.route-access-status[data-status="stairs"],.route-access-status[data-status="barrier"]{border-color:#9b4c32;background:#fff0e9;color:#73412e}.route-access-status[data-status="recorded"]{border-color:#41765a;background:#edf5eb}.route-access-details{margin:12px 0;font-size:12px}.route-access-details summary{cursor:pointer;font-weight:650;line-height:1.5}.route-access-details ol{padding-left:20px}.route-access-details li{padding:8px 0;border-bottom:1px solid #e0e6da}.route-access-details li strong{font-size:11px}.route-access-details li p{margin:5px 0;font-size:11px;line-height:1.5}

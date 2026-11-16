@@ -34,11 +34,11 @@ Durante un recorrido, **Orientarme** permite comparar esa orientación con la di
 
 La orientación es aproximada y depende del sensor y su calibración. Los datos permanecen en el navegador; los sensores se suspenden al ocultar la página y se desactivan con su botón. `npm test` incluye lecturas Android/iOS simuladas, permisos, precisión, giro del mapa, lecturas caducadas y suspensión.
 
-## Revisión de accesibilidad
+## Escaleras, rampas y entradas
 
-Las rutas con escaleras ya identificadas muestran **Escaleras identificadas** o el conteo registrado. Un conteo desconocido no borra la clasificación del tramo. En las opciones sin escaleras registradas se distingue la accesibilidad pendiente, los parámetros supuestos y los datos marcados como verificados. Cada recorrido incluye el detalle de qué tramos necesitan comprobarse.
+Las rutas muestran distancia, duración y **Sin escaleras** o el conteo de escalones; las rampas se indican cuando aparecen. Los conteos que no existen en el origen se estiman con un escalón cada 0,30 m de tramo y se muestran con **≈**. **Menos escaleras** compara ese conteo; **Sin escaleras** excluye las escaleras. Los cierres y sentidos únicos se respetan. Ancho, pendiente, superficie y marcas de verificación no intervienen en estas opciones.
 
-La [auditoría completa](audit/README.md) incluye el inventario de tramos, los pendientes, las contradicciones detectadas en la verificación y en la clasificación de un tramo como rampa o escalera, y las opciones calculadas entre edificios. Los CSV permiten preparar la visita y anotar mediciones, fecha y responsables. `npm run audit:accessibility` regenera el informe sin modificar la red. La revisión digital no sustituye el recorrido con personas con movilidad reducida.
+La [revisión de caminos y entradas](audit/README.md) documenta las tres entradas que tenían la letra J en el sector de ML y ahora pertenecen a ML. La entrada de J permanece junto al edificio J. El módulo `accessibility.js` aplica estas correcciones al cargar; `npm run audit:accessibility` reproduce el inventario y las rutas con las mismas reglas.
 
 ## Cambios posteriores
 
